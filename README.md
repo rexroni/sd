@@ -7,5 +7,5 @@ Did you know that SpanishDict downloads over 200KB for every word lookup?  What 
 ## Dependencies
 `sd` is a python 3 script built on BeautifulSoup 4.  BeautifulSoup 4 can be installed with `pip3 install beatifulsoup4`.  Check out the output of `sd cat`:
 
-![example](https://raw.githubusercontent.com/rexroni/sd/branch/example.png)
+![example](https://raw.githubusercontent.com/rexroni/sd/master/example.png)
 
