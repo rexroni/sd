@@ -1,0 +1,68 @@
+#!/usr/bin/python3
+import urllib3
+import bs4
+import sys
+
+# color ANSI escape codes
+red = '\x1B[31m'
+grn = '\x1B[32m'
+yel = '\x1B[33m'
+blu = '\x1B[34m'
+gry = '\x1B[37;2m'
+# reset all fancypants text formatting:
+res = '\x1B[0m'
+
+if len(sys.argv) < 2:
+    print('usage: '+sys.argv[0]+' <word>')
+    sys.exit(1)
+
+w = sys.argv[1]
+
+http = urllib3.PoolManager()
+try:
+    r = http.request('GET','http://www.spanishdict.com/translate/'+w)
+except UnicodeEncodeError:
+    print('please type the word without any accents')
+    sys.exit(1)
+
+# make sure the HTTP request went well
+if r.status != 200:
+    print('HTTP error:',r.status)
+    sys.exit(1)
+
+bs = bs4.BeautifulSoup(r.data,'html.parser')
+try:
+    wordin = bs.find('h1',{'class':'source-text'}).contents[0]
+    wordsout = bs.find('div',{'class':'el'}).text
+except AttributeError:
+    print('Word not found.')
+    sys.exit(1)
+
+print('------------------------------')
+print(red+wordin+res+': '+red+wordsout+res)
+print('------------------------------')
+
+try:
+    chil = [c for c in bs.find('div',{'class':'dictionary-entry dictionary-neodict'}).children]
+except AttributeError:
+    print(gry+'No extended translations available'+res)
+    sys.exit(0)
+
+for c in chil:
+    if 'part_of_speech' in c.get('class'):
+        print(grn+c.text.upper()+res)
+    elif 'dictionary-neodict-indent-1' in c.get('class'):
+        print('  '+blu+c.find('span',{'class':'context'}).text+res)
+        for d in c.find('div',{'class':'dictionary-neodict-indent-2'}).children:
+            if 'dictionary-neodict-translation' in d.get('class'):
+                print('    '+d.text)
+            elif d.text != '':
+                e = [e for e in d.find('div',{'class':'dictionary-neodict-example'}).children]
+                print('      '+e[0].text)
+                print(gry+"       '-> ",end='')
+                print(e[2].text+res)
+
+
+print('------------------------------')
+print(red+wordin+res+': '+red+wordsout+res)
+print('------------------------------')
