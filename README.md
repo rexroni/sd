@@ -17,3 +17,6 @@ Check out the output of `sd cat`:
 
 ![example](https://raw.githubusercontent.com/rexroni/sd/master/example.png)
 
+Also check out the output of `sd conj tener` (colorized version of nick96's code):
+
+![example2](https://raw.githubusercontent.com/rexroni/sd/master/example2.png)
