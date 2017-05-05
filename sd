@@ -31,17 +31,20 @@ def get_soup_and_quickdef(type_of_trans,word):
     bs = bs4.BeautifulSoup(r.data,'html.parser')
 
     # now get definition
+    wordsin = []
+    wordsout = []
     try:
-        wordin = bs.find('h1',{'class':'source-text'}).contents[0]
-        wordsout = bs.find('div',{'class':'el'}).text
+        wordsin = [ i.contents[0] for i in bs.find_all('h1',{'class':'source-text'}) ]
+        wordsout = [ i.text for i in bs.find_all('div',{'class':'el'}) ]
     except AttributeError:
         print('Word not found.')
         sys.exit(1)
-    return bs, wordin, wordsout
+    return bs, wordsin, wordsout
 
-def print_quickdef(wordin, wordsout):
+def print_quickdef(wordsin, wordsout):
     print('------------------------------')
-    print(red+wordin+res+': '+red+wordsout+res)
+    for i,o in zip(wordsin, wordsout):
+        print(red+i+res+': '+red+o+res)
     print('------------------------------')
 
 def translate(word):
@@ -88,7 +91,7 @@ table class that we want. """
 
 def conjugate(verb):
     soup, wordin, wordsout = get_soup_and_quickdef('conjugate',verb)
-    title = ["Indicative", "Subjunctive", "Imperative"]
+    title = [grn+"INDICATIVE"+res, grn+"Subjunctive"+res, grn+"Imperative"+res]
     tables = gettables(soup)
     print_quickdef(wordin, wordsout)
     if len(tables) == 0:
