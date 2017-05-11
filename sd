@@ -91,13 +91,20 @@ table class that we want. """
 
 def conjugate(verb):
     soup, wordin, wordsout = get_soup_and_quickdef('conjugate',verb)
-    title = [grn+"INDICATIVE"+res, grn+"Subjunctive"+res, grn+"Imperative"+res]
+    title = [grn+"INDICATIVE"+res, grn+"SUBJUNCTIVE"+res, grn+"IMPERATIVE"+res]
     tables = gettables(soup)
     print_quickdef(wordin, wordsout)
     if len(tables) == 0:
         print(gry+'No conjugation available'+res)
         sys.exit(0)
     print('')
+    basics = ''
+    for i in soup.find_all('div',{'class':'conj-row conj-basics-row'}):
+        basics += grn + i.find('a').contents[0].strip().upper() + res
+        basics += '\t'
+        basics += i.find('span').contents[0].strip()
+        basics += '\n'
+    print(basics)
     table_no = 0
     for table in tables:
         if table_no == 3:
