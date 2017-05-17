@@ -102,7 +102,7 @@ def conjugate(verb):
     for i in soup.find_all('div',{'class':'conj-row conj-basics-row'}):
         basics += grn + i.find('a').contents[0].strip().upper() + res
         basics += '\t'
-        basics += i.find('span').contents[0].strip()
+        basics += i.find('span',{'class':'conj-basic-word'}).contents[0].strip()
         basics += '\n'
     print(basics)
     table_no = 0
