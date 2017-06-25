@@ -1,10 +1,8 @@
-#t!/usr/bin/python3
-#from urllib3 import PoolManager
+#!/usr/bin/python3
 from requests import get
 from bs4 import BeautifulSoup
 from sys import argv,exit
 from tabulate import tabulate
-import traceback
 
 # color ANSI escape codes
 red = '\x1B[31m'
