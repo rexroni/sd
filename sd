@@ -1,8 +1,10 @@
-#!/usr/bin/python3
-import urllib3
-import bs4
-import sys
+#t!/usr/bin/python3
+#from urllib3 import PoolManager
+from requests import get
+from bs4 import BeautifulSoup
+from sys import argv,exit
 from tabulate import tabulate
+import traceback
 
 # color ANSI escape codes
 red = '\x1B[31m'
@@ -13,24 +15,22 @@ gry = '\x1B[37;2m'
 # reset all fancypants text formatting:
 res = '\x1B[0m'
 
-def get_soup_and_quickdef(type_of_trans,word):
+def get_soup(type_of_trans,word):
     # make http request
-    http = urllib3.PoolManager()
     try:
-        r = http.request('GET','http://www.spanishdict.com/'+type_of_trans+'/'+word)
+        r = get('http://www.spanishdict.com/'+type_of_trans+'/'+word)
     except UnicodeEncodeError:
         print('please type the word without any accents')
-        sys.exit(1)
+        exit(1)
 
     # make sure the HTTP request went well
-    if r.status != 200:
-        print('HTTP error:',r.status)
-        sys.exit(1)
+    if r.status_code != 200:
+        print('HTTP error:',r.status_code,r.reason)
+        exit(1)
 
-    # init parser
-    bs = bs4.BeautifulSoup(r.data,'html.parser')
+    return BeautifulSoup(r.content,'html.parser')
 
-    # now get definition
+def get_quickdef(bs):
     wordsin = []
     wordsout = []
     try:
@@ -38,8 +38,8 @@ def get_soup_and_quickdef(type_of_trans,word):
         wordsout = [ i.text for i in bs.find_all('div',{'class':'el'}) ]
     except AttributeError:
         print('Word not found.')
-        sys.exit(1)
-    return bs, wordsin, wordsout
+        exit(1)
+    return wordsin, wordsout
 
 def print_quickdef(wordsin, wordsout):
     print('------------------------------')
@@ -47,32 +47,75 @@ def print_quickdef(wordsin, wordsout):
         print(red+i+res+': '+red+o+res)
     print('------------------------------')
 
-def translate(word):
-    bs,wordin,wordsout = get_soup_and_quickdef('translate',word)
-
-    print_quickdef(wordin, wordsout)
-
+def print_translation_body(bs):
+    # try to read the neodict dictionary
     try:
-        chil = [c for c in bs.find('div',{'class':'dictionary-entry dictionary-neodict'}).children]
+        for c in bs.find('div',{'class':'dictionary-neodict'}).children:
+            if 'part_of_speech' in c.get('class'):
+                print(grn+c.text.upper()+res)
+            elif 'dictionary-neodict-indent-1' in c.get('class'):
+                print('  '+blu+c.find('span',{'class':'context'}).text+res)
+                for d in c.find('div',{'class':'dictionary-neodict-indent-2'}).children:
+                    if 'dictionary-neodict-translation' in d.get('class'):
+                        print('    '+d.text)
+                    elif d.text != '':
+                        for ex in d.find_all('div',{'class':'dictionary-neodict-example'}):
+                            e = [e for e in ex.children]
+                            print('      '+e[0].text)
+                            print(gry+"       '-> ",end='')
+                            print(e[2].text+res)
+        return
     except AttributeError:
-        print(gry+'No extended translations available'+res)
-        sys.exit(0)
+        pass
 
-    for c in chil:
-        if 'part_of_speech' in c.get('class'):
-            print(grn+c.text.upper()+res)
-        elif 'dictionary-neodict-indent-1' in c.get('class'):
-            print('  '+blu+c.find('span',{'class':'context'}).text+res)
-            for d in c.find('div',{'class':'dictionary-neodict-indent-2'}).children:
-                if 'dictionary-neodict-translation' in d.get('class'):
-                    print('    '+d.text)
-                elif d.text != '':
-                    e = [e for e in d.find('div',{'class':'dictionary-neodict-example'}).children]
-                    print('      '+e[0].text)
-                    print(gry+"       '-> ",end='')
-                    print(e[2].text+res)
+    # try to read the neoharrap dictionary
+    try:
+        for c in bs.find('div',{'class':'dictionary-neoharrap'}).children:
+            if 'part_of_speech' in c.get('class'):
+                print(grn+c.text.upper()+res)
+            elif 'dictionary-neoharrap-indent-1' in c.get('class'):
+                print('  '+blu+c.find('span',{'class':'context'}).text+res)
+                for d in c.find('div',{'class':'dictionary-neoharrap-indent-2'}).children:
+                    if 'dictionary-neoharrap-translation' in d.get('class'):
+                        print('    '+d.text)
+                    elif d.text != '':
+                        for ex in d.find_all('div',{'class':'dictionary-neoharrap-example'}):
+                            e = [e for e in ex.children]
+                            print('      '+e[0].text)
+                            print(gry+"       '-> ",end='')
+                            print(e[2].text+res)
+        return
+    except AttributeError:
+        pass
 
-    print_quickdef(wordin, wordsout)
+    print(gry+'No extended translations available'+res)
+    exit(0)
+
+def translate(word):
+    bs = get_soup('translate',word)
+
+    # get both language translations, if the word is in both languages
+    en = bs.find('div',{'id':'translate-en'})
+    es = bs.find('div',{'id':'translate-es'})
+    if en and es:
+        print(yel+'===================== Spanish to English ====================='+res)
+        # print english
+        wordin,wordsout = get_quickdef(en)
+        print_quickdef(wordin, wordsout)
+        print_translation_body(en)
+        print_quickdef(wordin, wordsout)
+        print(yel+'===================== English to Spanish ====================='+res)
+        # print spanish
+        wordin,wordsout = get_quickdef(es)
+        print_quickdef(wordin, wordsout)
+        print_translation_body(es)
+        print_quickdef(wordin, wordsout)
+    else:
+        # only one translation, so print whatever is there
+        wordin,wordsout = get_quickdef(bs)
+        print_quickdef(wordin, wordsout)
+        print_translation_body(bs)
+        print_quickdef(wordin, wordsout)
 
 def gettables(soup):
     """ Get TCLASS from HTML.
@@ -90,13 +133,14 @@ table class that we want. """
     return tbls
 
 def conjugate(verb):
-    soup, wordin, wordsout = get_soup_and_quickdef('conjugate',verb)
+    soup = get_soup('conjugate',verb)
+    wordin, wordsout = get_quickdef(soup)
     title = [grn+"INDICATIVE"+res, grn+"SUBJUNCTIVE"+res, grn+"IMPERATIVE"+res]
     tables = gettables(soup)
     print_quickdef(wordin, wordsout)
     if len(tables) == 0:
         print(gry+'No conjugation available'+res)
-        sys.exit(0)
+        exit(0)
     print('')
     basics = ''
     for i in soup.find_all('div',{'class':'conj-row conj-basics-row'}):
@@ -116,18 +160,21 @@ def conjugate(verb):
         table_no += 1
     print_quickdef(wordin, wordsout)
 
+def make_ascii(word):
+    return word.lower().replace('á','a').replace('é','e').replace('í','i').replace('ó','o').replace('ú','u').replace('ü','u').replace('ñ','n')
+
 if __name__=='__main__':
-    if len(sys.argv) == 2:
-        translate(sys.argv[1])
-        sys.exit(0)
-    elif len(sys.argv) == 3:
-        if sys.argv[1] != 'conj':
+    if len(argv) == 2:
+        translate(make_ascii(argv[1]))
+        exit(0)
+    elif len(argv) == 3:
+        if argv[1] != 'conj':
             print('usage: sd <just one word>')
             print('       sd conj <verb>')
-        conjugate(sys.argv[2])
-        sys.exit(0)
+        conjugate(make_ascii(argv[2]))
+        exit(0)
     else:
         print('usage: sd <just one word>')
         print('       sd conj <verb>')
-        sys.exit(1)
+        exit(1)
 
