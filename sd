@@ -62,7 +62,7 @@ def print_translation_body(bs):
                             print('      '+e[0].text)
                             print(gry+"       '-> ",end='')
                             print(e[2].text+res)
-        return
+        return True
     except AttributeError:
         pass
 
@@ -82,12 +82,12 @@ def print_translation_body(bs):
                             print('      '+e[0].text)
                             print(gry+"       '-> ",end='')
                             print(e[2].text+res)
-        return
+        return True
     except AttributeError:
         pass
 
     print(gry+'No extended translations available'+res)
-    exit(0)
+    return False
 
 def translate(word):
     bs = get_soup('translate',word)
@@ -100,14 +100,12 @@ def translate(word):
         # print english
         wordin,wordsout = get_quickdef(en)
         print_quickdef(wordin, wordsout)
-        print_translation_body(en)
-        print_quickdef(wordin, wordsout)
+        if print_translation_body(en): print_quickdef(wordin, wordsout)
         print(yel+'===================== English to Spanish ====================='+res)
         # print spanish
         wordin,wordsout = get_quickdef(es)
         print_quickdef(wordin, wordsout)
-        print_translation_body(es)
-        print_quickdef(wordin, wordsout)
+        if print_translation_body(es): print_quickdef(wordin, wordsout)
     else:
         # only one translation, so print whatever is there
         wordin,wordsout = get_quickdef(bs)
