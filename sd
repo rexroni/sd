@@ -20,6 +20,9 @@ def get_soup(type_of_trans,word):
     except UnicodeEncodeError:
         print('please type the word without any accents')
         exit(1)
+    except:
+        print('error fetching spanishdict.com')
+        exit(1)
 
     # make sure the HTTP request went well
     if r.status_code != 200:
